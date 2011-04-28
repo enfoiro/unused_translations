@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 # This script parses files in app to build up a listing of used translations
 # and compare it with your local file
-
+require 'optparse'
 
 module UnusedTranslations
   #RAILS_ROOT = File.join(File.dirname(__FILE__), ['..'] * 4)
@@ -53,18 +53,19 @@ module UnusedTranslations
     end
   end
 
-  def self.deep_diff(hash1, hash2)
+  def self.deep_diff(hash1, hash2, ignore_keys=[])
     #puts "----"
     #puts "hash1: " + hash1.inspect
     #puts "hash2: " + hash2.inspect
     diff = {}
     hash1.keys.each do |key|
+      next if ignore_keys.include?(key)
       #puts "key: " + key
       #puts "hash1[key].class: " + hash1[key].class.to_s
       #puts "hash2[key].class: " + hash2[key].class.to_s
       if hash1[key].class.to_s == 'Hash' and hash2[key].class.to_s == 'Hash'
         #puts "hash+hash"
-        d = deep_diff(hash1[key], hash2[key])
+        d = deep_diff(hash1[key], hash2[key], ignore_keys)
         diff.key?(key) ? diff[key].merge!(d) : diff[key] = d unless d.empty?
       end
       if hash1[key].class.to_s == 'Hash' and hash2[key] == nil
@@ -109,7 +110,26 @@ module UnusedTranslations
     keys.flatten
   end
 
-  def self.main(locales)
+  def self.main
+    optparse = OptionParser.new do |opts|
+      opts.banner = "Usage: script/unused_translations [options] file1 file2 ..."
+      opts.on( '-i', '--ignore-keys a,b,c', Array, "Ignore keys used by built-in helpers or error message generators (ex. datetime, formtastic, authlogic, activerecord...)" ) do |f|
+        @ignore_keys = f
+      end
+      opts.on( '-h', '--help', 'Display this screen' ) do
+        puts opts
+        exit
+      end
+    end
+    @ignore_keys = []
+
+    begin
+      optparse.parse!
+    rescue OptionParser::InvalidOption, OptionParser::MissingArgument
+      puts $!.to_s
+      puts optparse
+      exit
+    end
     files = file_list
 
     @translations = Translations.new
@@ -120,7 +140,11 @@ module UnusedTranslations
       end
     end
 
-    loc = YAML.load_file(locales)[File.basename(locales, '.yml')]
-    deep_diff(loc, @translations.translations)
+    diff = []
+    ARGV.each do |f|
+      loc = YAML.load_file(f)[File.basename(f, '.yml')]
+      diff << deep_diff(loc, @translations.translations, @ignore_keys)
+    end
+    diff
   end
 end

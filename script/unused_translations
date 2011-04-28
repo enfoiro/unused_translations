@@ -3,7 +3,7 @@ require File.dirname(__FILE__) + "/../config/environment" unless defined?(RAILS_
 require "unused_translations"
 
 if ARGV[0]
-  puts UnusedTranslations.main(ARGV[0]).to_yaml
+  puts UnusedTranslations.main.to_yaml
 else
-  puts "Usage: script/unused_translations config/locales/en.yml" 
+  puts "Usage: script/unused_translations [options] config/locales/en.yml"
 end
