@@ -100,7 +100,7 @@ module UnusedTranslations
   end
 
   def self.file_list
-    Dir[File.join(RAILS_ROOT, 'app', '**', '*.*')]
+    Dir[File.join(RAILS_ROOT, 'app', '**', '*.*')] + Dir[File.join(RAILS_ROOT, 'public', 'javascripts', '**', '*.js')]
   end
 
   def self.parse_source_code(file)
